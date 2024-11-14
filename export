@@ -1,117 +1,12 @@
-D'accord ! Si tu veux choisir dynamiquement entre deux services (Service1 ou Service2) en fonction d'une variable globale (isEnabled), tu peux adapter ton FactoryProvider pour qu'il prenne en compte cette variable et retourne le bon service.
+function getAllProperty1(toto: ObjectA): string[] {
+  // Commence par ajouter `property1` de l'objet `toto` dans la liste
+  let result: string[] = [toto.property1];
 
-Voici les étapes pour accomplir cela.
-
-1. Créer Service2
-
-Supposons que tu as déjà Service1. Maintenant, tu dois créer Service2.
-
-import { Injectable } from '@angular/core';
-
-@Injectable({
-  providedIn: 'root', // ou un module spécifique
-})
-export class Service2 {
-  constructor() {
-    console.log('Service2 instantiated');
+  // Parcourt chaque élément dans `property2` de `toto`
+  for (const item of toto.property2) {
+    // Appel récursif sur chaque élément et concatène le résultat
+    result = result.concat(getAllProperty1(item));
   }
 
-  getData(): string {
-    return 'Data from Service2';
-  }
+  return result;
 }
-
-2. Mettre à jour ServiceA
-
-ServiceA sera agnostique du service utilisé (qu'il s'agisse de Service1 ou Service2). Il utilisera simplement une interface commune.
-
-import { Injectable } from '@angular/core';
-
-export interface IService {
-  getData(): string;
-}
-
-@Injectable({
-  providedIn: 'root',
-})
-export class ServiceA {
-  constructor(private service: IService) {
-    console.log('ServiceA instantiated');
-  }
-
-  useService(): string {
-    return this.service.getData();
-  }
-}
-
-3. Créer une Factory pour injecter dynamiquement Service1 ou Service2
-
-Tu vas créer une factory qui décide quel service injecter en fonction de la variable globale isEnabled.
-
-import { Service1 } from './service1';
-import { Service2 } from './service2';
-import { ServiceA, IService } from './serviceA';
-
-const isEnabled = true; // Ou définir cela de manière dynamique
-
-export function serviceAFactory(service1: Service1, service2: Service2): ServiceA {
-  const chosenService: IService = isEnabled ? service1 : service2;
-  return new ServiceA(chosenService);
-}
-
-export const serviceAProvider = {
-  provide: ServiceA,
-  useFactory: serviceAFactory,
-  deps: [Service1, Service2], // Injecter les deux services pour permettre la sélection
-};
-
-4. Enregistrer le FactoryProvider dans le module
-
-Comme auparavant, tu enregistres le FactoryProvider dans un module Angular.
-
-import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
-import { AppComponent } from './app.component';
-import { serviceAProvider } from './services/serviceA.factory';
-
-@NgModule({
-  declarations: [AppComponent],
-  imports: [BrowserModule],
-  providers: [serviceAProvider], // Enregistrer le FactoryProvider ici
-  bootstrap: [AppComponent],
-})
-export class AppModule {}
-
-5. Utilisation dans un composant
-
-Voici comment tu pourrais utiliser ServiceA dans un composant :
-
-import { Component } from '@angular/core';
-import { ServiceA } from './services/serviceA';
-
-@Component({
-  selector: 'app-root',
-  template: `<h1>{{ title }}</h1>`,
-})
-export class AppComponent {
-  title = '';
-
-  constructor(private serviceA: ServiceA) {
-    this.title = this.serviceA.useService();
-  }
-}
-
-Explication :
-
-1. Service1 et Service2 : Ce sont deux services différents. Chacun a une méthode getData() qui retourne des données.
-
-
-2. ServiceA : Ce service ne sait pas quel service spécifique (soit Service1 ou Service2) il utilise. Il dépend d'une interface IService qui assure que les deux services respectent une méthode getData().
-
-
-3. FactoryProvider : La factory serviceAFactory décide si Service1 ou Service2 doit être injecté dans ServiceA en fonction de la variable globale isEnabled.
-
-
-
-Ainsi, en fonction de la valeur de isEnabled, Angular injectera soit Service1 soit Service2 dans ServiceA.
-
