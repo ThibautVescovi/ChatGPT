@@ -1,12 +1,6 @@
-function getAllProperty1(toto: ObjectA): string[] {
-  // Commence par ajouter `property1` de l'objet `toto` dans la liste
-  let result: string[] = [toto.property1];
-
-  // Parcourt chaque élément dans `property2` de `toto`
-  for (const item of toto.property2) {
-    // Appel récursif sur chaque élément et concatène le résultat
-    result = result.concat(getAllProperty1(item));
+this.tableau): number {
+    return nodes.reduce((sum, node) => {
+      return sum + (node.amount || 0) + this.getTotalAmount(node.children || []);
+    }, 0);
   }
-
-  return result;
 }
