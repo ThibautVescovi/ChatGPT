@@ -1,6 +1,17 @@
-this.tableau): number {
-    return nodes.reduce((sum, node) => {
-      return sum + (node.amount || 0) + this.getTotalAmount(node.children || []);
-    }, 0);
-  }
-}
+🎉 Société Générale
+a le plaisir de vous inviter à sa soirée de fin d'année !
+
+📅 Mercredi 11 décembre 2024
+🕖 De 19h à 2h
+📍 Garden Trinité
+60 rue Saint-Lazare, 75009 Paris
+
+Sous le signe des fêtes de fin d'année, nous vous promettons une soirée magique et conviviale aux couleurs de Noël !
+
+🎄 Les entités TRA et TSC sont nos invités d'honneur.
+
+Rejoignez-nous pour célébrer cette année écoulée dans une ambiance festive et chaleureuse.
+Merci de confirmer votre présence avant le [date limite de réponse].
+
+Nous avons hâte de partager ce moment avec vous !
+Tenue festive de rigueur.
