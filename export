@@ -1,17 +1,20 @@
-🎉 Société Générale
-a le plaisir de vous inviter à sa soirée de fin d'année !
+function parseLocaleNumber(value: string, locale: string): number {
+  const formatter = new Intl.NumberFormat(locale);
+  const parts = formatter.formatToParts(12345.6); // Test pour détecter les séparateurs
 
-📅 Mercredi 11 décembre 2024
-🕖 De 19h à 2h
-📍 Garden Trinité
-60 rue Saint-Lazare, 75009 Paris
+  const groupSeparator = parts.find(part => part.type === 'group')?.value || ',';
+  const decimalSeparator = parts.find(part => part.type === 'decimal')?.value || '.';
 
-Sous le signe des fêtes de fin d'année, nous vous promettons une soirée magique et conviviale aux couleurs de Noël !
+  // Remplacer les séparateurs locaux par ceux compatibles avec JavaScript
+  const normalizedValue = value
+    .replace(new RegExp(`\\${groupSeparator}`, 'g'), '') // Supprimer les séparateurs de groupe
+    .replace(decimalSeparator, '.'); // Remplacer le séparateur décimal par un point
+  
+  return parseFloat(normalizedValue);
+}
 
-🎄 Les entités TRA et TSC sont nos invités d'honneur.
-
-Rejoignez-nous pour célébrer cette année écoulée dans une ambiance festive et chaleureuse.
-Merci de confirmer votre présence avant le [date limite de réponse].
-
-Nous avons hâte de partager ce moment avec vous !
-Tenue festive de rigueur.
+// Exemple d'utilisation
+const amount = '1,234.56';
+const locale = 'en-US';
+const numberValue = parseLocaleNumber(amount, locale);
+console.log(numberValue); // 1234.56
