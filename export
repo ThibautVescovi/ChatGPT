@@ -1,20 +1,78 @@
-function parseLocaleNumber(value: string, locale: string): number {
-  const formatter = new Intl.NumberFormat(locale);
-  const parts = formatter.formatToParts(12345.6); // Test pour détecter les séparateurs
+Voici un exemple de code TypeScript pour accomplir cette tâche :
 
-  const groupSeparator = parts.find(part => part.type === 'group')?.value || ',';
-  const decimalSeparator = parts.find(part => part.type === 'decimal')?.value || '.';
+// Définir les types pour les objets dans les tableaux
+type FormItem = {
+  id: number;
+  amount: number;
+};
 
-  // Remplacer les séparateurs locaux par ceux compatibles avec JavaScript
-  const normalizedValue = value
-    .replace(new RegExp(`\\${groupSeparator}`, 'g'), '') // Supprimer les séparateurs de groupe
-    .replace(decimalSeparator, '.'); // Remplacer le séparateur décimal par un point
-  
-  return parseFloat(normalizedValue);
+type BBReportItem = {
+  id: number;
+  amount: number;
+  bbreport: BBReportItem[];
+};
+
+// Exemple de données
+const form: FormItem[] = [
+  { id: 1, amount: 100 },
+  { id: 2, amount: 200 },
+  { id: 3, amount: 300 },
+];
+
+const bbreport: BBReportItem[] = [
+  { id: 1, amount: 0, bbreport: [] },
+  { id: 2, amount: 0, bbreport: [] },
+  { id: 3, amount: 0, bbreport: [] },
+];
+
+// Fonction pour copier les `amount` depuis `form` dans `bbreport`
+function updateAmounts(form: FormItem[], bbreport: BBReportItem[]) {
+  const formMap = new Map(form.map(item => [item.id, item.amount])); // Crée une Map pour accéder facilement par `id`
+
+  const update = (reports: BBReportItem[]) => {
+    reports.forEach(report => {
+      if (formMap.has(report.id)) {
+        report.amount = formMap.get(report.id)!; // Met à jour `amount` si l'id correspond
+      }
+      if (report.bbreport.length > 0) {
+        update(report.bbreport); // Met à jour récursivement les sous-rapports
+      }
+    });
+  };
+
+  update(bbreport); // Démarre l'opération de mise à jour
 }
 
-// Exemple d'utilisation
-const amount = '1,234.56';
-const locale = 'en-US';
-const numberValue = parseLocaleNumber(amount, locale);
-console.log(numberValue); // 1234.56
+// Appel de la fonction
+updateAmounts(form, bbreport);
+
+// Résultat mis à jour
+console.log(bbreport);
+
+Explication :
+
+1. Mapping des IDs dans form :
+
+Une Map est utilisée pour associer rapidement les id aux amount dans form.
+
+
+
+2. Mise à jour récursive :
+
+Une fonction interne update est utilisée pour parcourir les éléments de bbreport et leurs sous-rapports récursivement.
+
+Si un id correspond, l'amount est mis à jour.
+
+Si un élément a des sous-rapports (bbreport), la fonction update est appelée récursivement.
+
+
+
+3. Appel final :
+
+La fonction est exécutée sur le tableau principal bbreport.
+
+
+
+
+Le code est flexible et peut gérer des sous-rapports imbriqués dans bbreport.
+
