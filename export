@@ -1,1 +1,39 @@
-/^(?<amount>(-?(\d+(\.\d*)?|\.\d+)|0)) (?<factor>[mkb])?$/i
+import { createDirectiveFactory, SpectatorDirective } from '@ngneat/spectator';
+import { TextareaAutoResizeDirective } from './textarea-auto-resize.directive';
+
+describe('TextareaAutoResizeDirective', () => {
+  let spectator: SpectatorDirective<TextareaAutoResizeDirective>;
+  const createDirective = createDirectiveFactory(TextareaAutoResizeDirective);
+
+  beforeEach(() => {
+    spectator = createDirective('<textarea captainTextareaAutoresize></textarea>');
+  });
+
+  it('should create the directive', () => {
+    expect(spectator.directive).toBeTruthy();
+  });
+
+  it('should set the initial rows to 1', () => {
+    const textarea = spectator.element as HTMLTextAreaElement;
+    expect(textarea.rows).toBe(1);
+  });
+
+  it('should adjust the height of the textarea on input', () => {
+    const textarea = spectator.element as HTMLTextAreaElement;
+    const directive = spectator.directive;
+
+    // Simulate input change
+    textarea.value = 'Line 1\nLine 2\nLine 3';
+    spectator.dispatchEvent(textarea, new Event('input'));
+
+    // Trigger resize logic
+    const scrollHeight = textarea.scrollHeight;
+    expect(textarea.style.height).toBe(`${scrollHeight}px`);
+  });
+
+  it('should call resize on input event', () => {
+    const spy = jest.spyOn(spectator.directive, 'resize');
+    spectator.dispatchEvent(spectator.element, new Event('input'));
+    expect(spy).toHaveBeenCalled();
+  });
+});
