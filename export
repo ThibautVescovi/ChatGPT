@@ -1,39 +1,54 @@
-import { createDirectiveFactory, SpectatorDirective } from '@ngneat/spectator';
-import { TextareaAutoResizeDirective } from './textarea-auto-resize.directive';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator';
+import { MyService } from './my-service.service';
+import { Observable } from 'rxjs';
 
-describe('TextareaAutoResizeDirective', () => {
-  let spectator: SpectatorDirective<TextareaAutoResizeDirective>;
-  const createDirective = createDirectiveFactory(TextareaAutoResizeDirective);
+describe('MyService', () => {
+  let spectator: SpectatorService<MyService>;
+  const createService = createServiceFactory(MyService);
 
   beforeEach(() => {
-    spectator = createDirective('<textarea captainTextareaAutoresize></textarea>');
+    spectator = createService();
   });
 
-  it('should create the directive', () => {
-    expect(spectator.directive).toBeTruthy();
-  });
+  it('should return an object with 4 observables', (done) => {
+    const result = spectator.service.getObjectWithObservables();
 
-  it('should set the initial rows to 1', () => {
-    const textarea = spectator.element as HTMLTextAreaElement;
-    expect(textarea.rows).toBe(1);
-  });
+    // Vérification des clés de l'objet
+    expect(result).toBeDefined();
+    expect(result.observable1$).toBeInstanceOf(Observable);
+    expect(result.observable2$).toBeInstanceOf(Observable);
+    expect(result.observable3$).toBeInstanceOf(Observable);
+    expect(result.observable4$).toBeInstanceOf(Observable);
 
-  it('should adjust the height of the textarea on input', () => {
-    const textarea = spectator.element as HTMLTextAreaElement;
-    const directive = spectator.directive;
+    // Tester les valeurs des observables
+    let completedCount = 0;
 
-    // Simulate input change
-    textarea.value = 'Line 1\nLine 2\nLine 3';
-    spectator.dispatchEvent(textarea, new Event('input'));
+    result.observable1$.subscribe((value) => {
+      expect(value).toBe('value 1');
+      checkIfDone();
+    });
 
-    // Trigger resize logic
-    const scrollHeight = textarea.scrollHeight;
-    expect(textarea.style.height).toBe(`${scrollHeight}px`);
-  });
+    result.observable2$.subscribe((value) => {
+      expect(value).toBe(42);
+      checkIfDone();
+    });
 
-  it('should call resize on input event', () => {
-    const spy = jest.spyOn(spectator.directive, 'resize');
-    spectator.dispatchEvent(spectator.element, new Event('input'));
-    expect(spy).toHaveBeenCalled();
+    result.observable3$.subscribe((value) => {
+      expect(value).toBe(true);
+      checkIfDone();
+    });
+
+    result.observable4$.subscribe((value) => {
+      expect(value).toEqual({ key: 'value' });
+      checkIfDone();
+    });
+
+    // Fonction pour terminer le test une fois tous les observables complétés
+    function checkIfDone() {
+      completedCount++;
+      if (completedCount === 4) {
+        done();
+      }
+    }
   });
 });
