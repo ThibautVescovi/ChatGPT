@@ -1,54 +1,33 @@
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator';
-import { MyService } from './my-service.service';
-import { Observable } from 'rxjs';
+import _ from 'lodash';
 
-describe('MyService', () => {
-  let spectator: SpectatorService<MyService>;
-  const createService = createServiceFactory(MyService);
+// Fonction pour supprimer les clés avec `null` ou `undefined`
+function cleanObject(obj: any): any {
+  if (!_.isObject(obj)) return obj; // Si ce n'est pas un objet, retourner la valeur
+  return _.omitBy(_.mapValues(obj, cleanObject), (value) => value === null || value === undefined);
+}
 
-  beforeEach(() => {
-    spectator = createService();
-  });
+// Fonction pour comparer deux objets nettoyés
+function compareObjects(obj1: any, obj2: any): boolean {
+  const cleanedObj1 = cleanObject(obj1);
+  const cleanedObj2 = cleanObject(obj2);
+  return _.isEqual(cleanedObj1, cleanedObj2);
+}
 
-  it('should return an object with 4 observables', (done) => {
-    const result = spectator.service.getObjectWithObservables();
+// Exemple d'utilisation
+const object1 = {
+  a: 1,
+  b: null,
+  c: {
+    d: 2,
+    e: undefined,
+  },
+};
 
-    // Vérification des clés de l'objet
-    expect(result).toBeDefined();
-    expect(result.observable1$).toBeInstanceOf(Observable);
-    expect(result.observable2$).toBeInstanceOf(Observable);
-    expect(result.observable3$).toBeInstanceOf(Observable);
-    expect(result.observable4$).toBeInstanceOf(Observable);
+const object2 = {
+  a: 1,
+  c: {
+    d: 2,
+  },
+};
 
-    // Tester les valeurs des observables
-    let completedCount = 0;
-
-    result.observable1$.subscribe((value) => {
-      expect(value).toBe('value 1');
-      checkIfDone();
-    });
-
-    result.observable2$.subscribe((value) => {
-      expect(value).toBe(42);
-      checkIfDone();
-    });
-
-    result.observable3$.subscribe((value) => {
-      expect(value).toBe(true);
-      checkIfDone();
-    });
-
-    result.observable4$.subscribe((value) => {
-      expect(value).toEqual({ key: 'value' });
-      checkIfDone();
-    });
-
-    // Fonction pour terminer le test une fois tous les observables complétés
-    function checkIfDone() {
-      completedCount++;
-      if (completedCount === 4) {
-        done();
-      }
-    }
-  });
-});
+console.log(compareObjects(object1, object2)); // true
