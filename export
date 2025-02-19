@@ -1,93 +1,31 @@
-En Angular 18, lorsque vous utilisez toSignal() de @angular/core/rxjs-interop pour convertir un Observable en Signal, il y a un comportement important à comprendre : les valeurs émises rapidement et successivement peuvent être écrasées.
+import { Injectable, signal } from '@angular/core'; import { Store } from '@ngrx/store'; import { HttpClient } from '@angular/common/http'; import { catchError, finalize, of, tap } from 'rxjs';
 
-Explication du problème
+export type RequestState = 'idle' | 'loading' | 'success' | 'error';
 
-1. Observable classique (avec tap())
-Lorsque vous affichez les valeurs dans un tap(), toutes les valeurs émises sont bien visibles car tap() intercepte chaque émission sans rien filtrer.
+@Injectable({ providedIn: 'root' }) export class HttpStateService { private requestStates = signal<Map<string, RequestState>>(new Map());
 
+constructor(private http: HttpClient, private store: Store) {}
 
-2. Conversion en Signal (toSignal())
-Lorsque vous utilisez toSignal(), l'Observable est converti en un signal réactif, mais les signaux ne réagissent qu'aux changements d'état visibles. Cela signifie que si plusieurs valeurs sont émises rapidement, certaines peuvent être ignorées si le signal n'a pas eu le temps de se réactualiser entre deux émissions.
+getState(url: string) { return this.requestStates().get(url) || 'idle'; }
 
+fetch<T>(url: string) { const newState = new Map(this.requestStates()); newState.set(url, 'loading'); this.requestStates.set(newState);
 
+return this.http.get<T>(url).pipe(
+  tap(() => {
+    const successState = new Map(this.requestStates());
+    successState.set(url, 'success');
+    this.requestStates.set(successState);
+  }),
+  catchError((error) => {
+    const errorState = new Map(this.requestStates());
+    errorState.set(url, 'error');
+    this.requestStates.set(errorState);
+    return of(error);
+  }),
+  finalize(() => {
+    // Optionnel : On pourrait repasser à 'idle' après un temps donné
+  })
+);
 
-Pourquoi certaines valeurs ne s'affichent-elles pas dans effect() ?
-
-Les signaux fonctionnent en mode synchronisé dans le cycle de détection de changement d'Angular
-
-
-
-
-Le problème vient du fait que toSignal() capture uniquement la dernière valeur émise par l'Observable, et si plusieurs valeurs sont émises rapidement, certaines peuvent être écrasées avant d'être détectées par le Signal.
-
-Solutions possibles :
-
-1. Utiliser un BehaviorSubject ou ReplaySubject
-
-Si votre source d'Observable est sous votre contrôle, utilisez un ReplaySubject(1) ou BehaviorSubject pour garantir que chaque valeur est bien capturée par toSignal() :
-
-const subject = new ReplaySubject<string>(1); // Garde en mémoire la dernière valeur
-const mySignal = toSignal(subject.asObservable());
-
-Ainsi, même si une valeur est écrasée rapidement, le Signal pourra récupérer la dernière valeur émise.
-
-
----
-
-2. Forcer la détection des changements avec setTimeout
-
-Si votre Signal ne capte pas toutes les valeurs, vous pouvez forcer Angular à prendre en compte les changements :
-
-effect(() => {
-  setTimeout(() => {
-    console.log(mySignal());
-  });
-});
-
-Cela pousse la mise à jour dans le prochain cycle d'exécution et peut éviter que certaines valeurs ne soient perdues.
-
-
----
-
-3. Stocker manuellement l'historique des valeurs
-
-Si vous devez absolument voir toutes les valeurs, une alternative est de stocker un tableau des valeurs dans un WritableSignal :
-
-const history = signal<string[]>([]);
-
-effect(() => {
-  const newValue = mySignal();
-  history.update(values => [...values, newValue]);
-  console.log(history());
-});
-
-
----
-
-4. Utiliser scan() avant toSignal()
-
-Si vous voulez un comportement similaire à un BehaviorSubject, vous pouvez utiliser scan() pour accumuler les valeurs et ne pas en perdre :
-
-import { scan } from 'rxjs/operators';
-
-const accumulated$ = myObservable.pipe(scan((acc, value) => [...acc, value], []));
-const mySignal = toSignal(accumulated$);
-
-
----
-
-Conclusion
-
-Si vous devez absolument capturer toutes les valeurs :
-
-Utilisez un ReplaySubject(1) si vous contrôlez la source de l'Observable.
-
-Utilisez setTimeout() dans effect() pour forcer la détection des changements.
-
-Stockez l'historique avec un WritableSignal si chaque valeur doit être conservée.
-
-Utilisez scan() pour accumuler les valeurs dans l'Observable avant conversion.
-
-
-Choisissez la meilleure approche selon votre besoin !
+} }
 
