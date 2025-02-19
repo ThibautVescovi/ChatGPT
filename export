@@ -1,31 +1,15 @@
-import { Injectable, signal } from '@angular/core'; import { Store } from '@ngrx/store'; import { HttpClient } from '@angular/common/http'; import { catchError, finalize, of, tap } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { HttpClient } from '@angular/common/http';
+import { catchError, of } from 'rxjs';
 
-export type RequestState = 'idle' | 'loading' | 'success' | 'error';
+@Injectable({ providedIn: 'root' })
+export class HttpStateService {
+  constructor(private http: HttpClient) {}
 
-@Injectable({ providedIn: 'root' }) export class HttpStateService { private requestStates = signal<Map<string, RequestState>>(new Map());
-
-constructor(private http: HttpClient, private store: Store) {}
-
-getState(url: string) { return this.requestStates().get(url) || 'idle'; }
-
-fetch<T>(url: string) { const newState = new Map(this.requestStates()); newState.set(url, 'loading'); this.requestStates.set(newState);
-
-return this.http.get<T>(url).pipe(
-  tap(() => {
-    const successState = new Map(this.requestStates());
-    successState.set(url, 'success');
-    this.requestStates.set(successState);
-  }),
-  catchError((error) => {
-    const errorState = new Map(this.requestStates());
-    errorState.set(url, 'error');
-    this.requestStates.set(errorState);
-    return of(error);
-  }),
-  finalize(() => {
-    // Optionnel : On pourrait repasser à 'idle' après un temps donné
-  })
-);
-
-} }
-
+  fetch = rxMethod<string, unknown>((url) => 
+    this.http.get(url).pipe(
+      catchError((error) => of({ error })) // Gère les erreurs sans casser l'observable
+    )
+  );
+}
