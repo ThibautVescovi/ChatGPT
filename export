@@ -1,15 +1,71 @@
-import { Injectable, signal } from '@angular/core';
-import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { HttpClient } from '@angular/common/http';
-import { catchError, of } from 'rxjs';
+import { signalStore, withState, withMethods } from '@ngrx/signals';
+import { signal, WritableSignal } from '@angular/core';
+import { tap, mergeMap } from 'rxjs';
+import { patchState } from '@ngrx/signals';
 
-@Injectable({ providedIn: 'root' })
-export class HttpStateService {
-  constructor(private http: HttpClient) {}
-
-  fetch = rxMethod<string, unknown>((url) => 
-    this.http.get(url).pipe(
-      catchError((error) => of({ error })) // Gère les erreurs sans casser l'observable
-    )
-  );
+interface RepositoryRequest {
+  id: string;
+  status: WritableSignal<LoadingStatus>;
+  error?: WritableSignal<HttpErrorResponse | null>;
 }
+
+interface RequestHandlerState {
+  requests: Map<string, RepositoryRequest>;
+}
+
+const initialState: RequestHandlerState = {
+  requests: new Map<string, RepositoryRequest>(),
+};
+
+export const requestHandlerStore = signalStore(
+  {
+    providedIn: 'root',
+    withState: initialState,
+    withMethods: (store) => ({
+      fetch: (followedRequest: FollowedRequest) => {
+        const requestId = followedRequest.requestId;
+        const requestsState = new Map(store.requests());
+
+        if (!requestsState.has(requestId)) {
+          requestsState.set(requestId, {
+            id: requestId,
+            status: signal(LoadingStatus.IN_PROGRESS),
+            error: signal(null),
+          });
+          patchState(store, { requests: requestsState });
+        }
+
+        return followedRequest.requestAsObs.pipe(
+          tap({
+            next: () => {
+              const repositoryRequest = requestsState.get(requestId);
+              if (repositoryRequest) {
+                repositoryRequest.status.set(LoadingStatus.SUCCESS);
+                repositoryRequest.error.set(null);
+                patchState(store, { requests: requestsState });
+              }
+            },
+            error: (err: HttpErrorResponse) => {
+              const repositoryRequest = requestsState.get(requestId);
+              if (repositoryRequest) {
+                repositoryRequest.status.set(LoadingStatus.FAILURE);
+                repositoryRequest.error.set(err);
+                patchState(store, { requests: requestsState });
+              }
+            },
+          })
+        );
+      },
+
+      isLoading: (requestId: string) => {
+        const request = store.requests().get(requestId);
+        return request ? request.status() === LoadingStatus.IN_PROGRESS : false;
+      },
+
+      getError: (requestId: string) => {
+        const request = store.requests().get(requestId);
+        return request ? request.error() : null;
+      },
+    }),
+  }
+);
