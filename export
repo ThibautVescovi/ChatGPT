@@ -1,71 +1,117 @@
-import { signalStore, withState, withMethods } from '@ngrx/signals';
-import { signal, WritableSignal } from '@angular/core';
-import { tap, mergeMap } from 'rxjs';
-import { patchState } from '@ngrx/signals';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator';
+import { RequestHandlerStore } from './request-handler.store';
+import { LoadingStatus } from '@http/model/loading-status.model';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
 
-interface RepositoryRequest {
-  id: string;
-  status: WritableSignal<LoadingStatus>;
-  error?: WritableSignal<HttpErrorResponse | null>;
-}
+describe('RequestHandlerStore', () => {
+  let spectator: SpectatorService<typeof RequestHandlerStore>;
+  let store: typeof RequestHandlerStore;
 
-interface RequestHandlerState {
-  requests: Map<string, RepositoryRequest>;
-}
+  const createService = createServiceFactory({
+    service: RequestHandlerStore,
+  });
 
-const initialState: RequestHandlerState = {
-  requests: new Map<string, RepositoryRequest>(),
-};
+  beforeEach(() => {
+    spectator = createService();
+    store = spectator.service;
+  });
 
-export const requestHandlerStore = signalStore(
-  {
-    providedIn: 'root',
-    withState: initialState,
-    withMethods: (store) => ({
-      fetch: (followedRequest: FollowedRequest) => {
-        const requestId = followedRequest.requestId;
-        const requestsState = new Map(store.requests());
+  it('devrait initialiser le store avec une map vide', () => {
+    expect(store.requests().size).toBe(0);
+  });
 
-        if (!requestsState.has(requestId)) {
-          requestsState.set(requestId, {
-            id: requestId,
-            status: signal(LoadingStatus.IN_PROGRESS),
-            error: signal(null),
-          });
-          patchState(store, { requests: requestsState });
+  describe('fetch', () => {
+    it('devrait ajouter une requête et la passer en état IN_PROGRESS', () => {
+      const requestToHandle = {
+        name: 'test-request',
+        request: of(null), // Requête réussie immédiatement
+      };
+
+      store.fetch(requestToHandle).subscribe();
+
+      const request = store.requests().get('test-request');
+      expect(request).toBeDefined();
+      expect(request?.status()).toBe(LoadingStatus.IN_PROGRESS);
+    });
+
+    it('devrait mettre à jour le statut en SUCCESS en cas de succès', () => {
+      const requestToHandle = {
+        name: 'test-request',
+        request: of(null), // Simule une requête qui réussit
+      };
+
+      store.fetch(requestToHandle).subscribe();
+
+      const request = store.requests().get('test-request');
+      expect(request?.status()).toBe(LoadingStatus.SUCCESS);
+      expect(request?.error()).toBeNull();
+    });
+
+    it('devrait mettre à jour le statut en FAILURE en cas d\'erreur', () => {
+      const errorResponse = new HttpErrorResponse({ status: 500, statusText: 'Internal Server Error' });
+
+      const requestToHandle = {
+        name: 'test-request',
+        request: throwError(() => errorResponse), // Simule une requête qui échoue
+      };
+
+      store.fetch(requestToHandle).subscribe({
+        error: () => {
+          const request = store.requests().get('test-request');
+          expect(request?.status()).toBe(LoadingStatus.FAILURE);
+          expect(request?.error()).toBe(errorResponse);
         }
+      });
+    });
+  });
 
-        return followedRequest.requestAsObs.pipe(
-          tap({
-            next: () => {
-              const repositoryRequest = requestsState.get(requestId);
-              if (repositoryRequest) {
-                repositoryRequest.status.set(LoadingStatus.SUCCESS);
-                repositoryRequest.error.set(null);
-                patchState(store, { requests: requestsState });
-              }
-            },
-            error: (err: HttpErrorResponse) => {
-              const repositoryRequest = requestsState.get(requestId);
-              if (repositoryRequest) {
-                repositoryRequest.status.set(LoadingStatus.FAILURE);
-                repositoryRequest.error.set(err);
-                patchState(store, { requests: requestsState });
-              }
-            },
-          })
-        );
-      },
+  describe('isLoading', () => {
+    it('devrait retourner true si une requête est en cours', () => {
+      const requestToHandle = {
+        name: 'test-request',
+        request: of(null),
+      };
 
-      isLoading: (requestId: string) => {
-        const request = store.requests().get(requestId);
-        return request ? request.status() === LoadingStatus.IN_PROGRESS : false;
-      },
+      store.fetch(requestToHandle).subscribe();
+      expect(store.isLoading('test-request')()).toBe(true);
+    });
 
-      getError: (requestId: string) => {
-        const request = store.requests().get(requestId);
-        return request ? request.error() : null;
-      },
-    }),
-  }
-);
+    it('devrait retourner false si la requête est terminée', () => {
+      const requestToHandle = {
+        name: 'test-request',
+        request: of(null),
+      };
+
+      store.fetch(requestToHandle).subscribe();
+      expect(store.isLoading('test-request')()).toBe(false);
+    });
+  });
+
+  describe('getError', () => {
+    it('devrait retourner l\'erreur si une requête a échoué', () => {
+      const errorResponse = new HttpErrorResponse({ status: 500, statusText: 'Internal Server Error' });
+
+      const requestToHandle = {
+        name: 'test-request',
+        request: throwError(() => errorResponse),
+      };
+
+      store.fetch(requestToHandle).subscribe({
+        error: () => {
+          expect(store.getError('test-request')()).toBe(errorResponse);
+        }
+      });
+    });
+
+    it('devrait retourner null si aucune erreur n\'existe', () => {
+      const requestToHandle = {
+        name: 'test-request',
+        request: of(null),
+      };
+
+      store.fetch(requestToHandle).subscribe();
+      expect(store.getError('test-request')()).toBeNull();
+    });
+  });
+});
