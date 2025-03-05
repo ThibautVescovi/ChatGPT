@@ -1,20 +1,13 @@
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator';
 import { RequestHandlerStore } from './request-handler.store';
 import { LoadingStatus } from '@http/model/loading-status.model';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 
 describe('RequestHandlerStore', () => {
-  let spectator: SpectatorService<typeof RequestHandlerStore>;
   let store: typeof RequestHandlerStore;
 
-  const createService = createServiceFactory({
-    service: RequestHandlerStore,
-  });
-
   beforeEach(() => {
-    spectator = createService();
-    store = spectator.service;
+    store = RequestHandlerStore;
   });
 
   it('devrait initialiser le store avec une map vide', () => {
@@ -25,7 +18,7 @@ describe('RequestHandlerStore', () => {
     it('devrait ajouter une requête et la passer en état IN_PROGRESS', () => {
       const requestToHandle = {
         name: 'test-request',
-        request: of(null), // Requête réussie immédiatement
+        request: of(null), // Simule une requête réussie immédiatement
       };
 
       store.fetch(requestToHandle).subscribe();
