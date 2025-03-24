@@ -1,110 +1,31 @@
-import { RequestHandlerStore } from './request-handler.store';
-import { LoadingStatus } from '@http/model/loading-status.model';
-import { HttpErrorResponse } from '@angular/common/http';
-import { of, throwError } from 'rxjs';
+import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
 
-describe('RequestHandlerStore', () => {
-  let store: typeof RequestHandlerStore;
+@Component({
+  selector: 'app-date-selector',
+  templateUrl: './date-selector.component.html',
+  styleUrls: ['./date-selector.component.css']
+})
+export class DateSelectorComponent implements OnInit {
+  dates: string[] = ['2024-03-15', '2024-03-20', '2024-03-22', '2024-03-25'];
+  date1: string = '2024-03-21'; // Date de référence
 
-  beforeEach(() => {
-    store = RequestHandlerStore;
+  dateForm = new FormGroup({
+    selectedDate: new FormControl(null)
   });
 
-  it('devrait initialiser le store avec une map vide', () => {
-    expect(store.requests().size).toBe(0);
-  });
+  ngOnInit() {
+    const closestDate = this.getClosestDate(this.date1);
+    this.dateForm.patchValue({ selectedDate: closestDate });
+  }
 
-  describe('fetch', () => {
-    it('devrait ajouter une requête et la passer en état IN_PROGRESS', () => {
-      const requestToHandle = {
-        name: 'test-request',
-        request: of(null), // Simule une requête réussie immédiatement
-      };
+  getClosestDate(targetDate: string): string | null {
+    if (this.dates.length === 0) return null;
 
-      store.fetch(requestToHandle).subscribe();
-
-      const request = store.requests().get('test-request');
-      expect(request).toBeDefined();
-      expect(request?.status()).toBe(LoadingStatus.IN_PROGRESS);
+    return this.dates.reduce((closest, current) => {
+      const currentDiff = Math.abs(new Date(current).getTime() - new Date(targetDate).getTime());
+      const closestDiff = Math.abs(new Date(closest).getTime() - new Date(targetDate).getTime());
+      return currentDiff < closestDiff ? current : closest;
     });
-
-    it('devrait mettre à jour le statut en SUCCESS en cas de succès', () => {
-      const requestToHandle = {
-        name: 'test-request',
-        request: of(null), // Simule une requête qui réussit
-      };
-
-      store.fetch(requestToHandle).subscribe();
-
-      const request = store.requests().get('test-request');
-      expect(request?.status()).toBe(LoadingStatus.SUCCESS);
-      expect(request?.error()).toBeNull();
-    });
-
-    it('devrait mettre à jour le statut en FAILURE en cas d\'erreur', () => {
-      const errorResponse = new HttpErrorResponse({ status: 500, statusText: 'Internal Server Error' });
-
-      const requestToHandle = {
-        name: 'test-request',
-        request: throwError(() => errorResponse), // Simule une requête qui échoue
-      };
-
-      store.fetch(requestToHandle).subscribe({
-        error: () => {
-          const request = store.requests().get('test-request');
-          expect(request?.status()).toBe(LoadingStatus.FAILURE);
-          expect(request?.error()).toBe(errorResponse);
-        }
-      });
-    });
-  });
-
-  describe('isLoading', () => {
-    it('devrait retourner true si une requête est en cours', () => {
-      const requestToHandle = {
-        name: 'test-request',
-        request: of(null),
-      };
-
-      store.fetch(requestToHandle).subscribe();
-      expect(store.isLoading('test-request')()).toBe(true);
-    });
-
-    it('devrait retourner false si la requête est terminée', () => {
-      const requestToHandle = {
-        name: 'test-request',
-        request: of(null),
-      };
-
-      store.fetch(requestToHandle).subscribe();
-      expect(store.isLoading('test-request')()).toBe(false);
-    });
-  });
-
-  describe('getError', () => {
-    it('devrait retourner l\'erreur si une requête a échoué', () => {
-      const errorResponse = new HttpErrorResponse({ status: 500, statusText: 'Internal Server Error' });
-
-      const requestToHandle = {
-        name: 'test-request',
-        request: throwError(() => errorResponse),
-      };
-
-      store.fetch(requestToHandle).subscribe({
-        error: () => {
-          expect(store.getError('test-request')()).toBe(errorResponse);
-        }
-      });
-    });
-
-    it('devrait retourner null si aucune erreur n\'existe', () => {
-      const requestToHandle = {
-        name: 'test-request',
-        request: of(null),
-      };
-
-      store.fetch(requestToHandle).subscribe();
-      expect(store.getError('test-request')()).toBeNull();
-    });
-  });
-});
+  }
+}
