@@ -1,31 +1,14 @@
-import { Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
+<select class="form-select" [(ngModel)]="selectedSchedule" (ngModelChange)="setOutOfScheduleDate($event)">
+  <option *ngFor="let schedule of availableScheduleDate" [ngValue]="schedule">
+    <span [translate]="'bb-report.option.computed' | translate : {'computedDate': schedule.valueDate | date:'dd MMM yyyy'}"></span>
+  </option>
+  <option [ngValue]="null">
+    <span [translate]="'bb-report.option.none'"></span>
+  </option>
+</select>
 
-@Component({
-  selector: 'app-date-selector',
-  templateUrl: './date-selector.component.html',
-  styleUrls: ['./date-selector.component.css']
-})
-export class DateSelectorComponent implements OnInit {
-  dates: string[] = ['2024-03-15', '2024-03-20', '2024-03-22', '2024-03-25'];
-  date1: string = '2024-03-21'; // Date de référence
+selectedSchedule: BorrowingBaseScheduleReportExpectedReport | null = null;
 
-  dateForm = new FormGroup({
-    selectedDate: new FormControl(null)
-  });
-
-  ngOnInit() {
-    const closestDate = this.getClosestDate(this.date1);
-    this.dateForm.patchValue({ selectedDate: closestDate });
-  }
-
-  getClosestDate(targetDate: string): string | null {
-    if (this.dates.length === 0) return null;
-
-    return this.dates.reduce((closest, current) => {
-      const currentDiff = Math.abs(new Date(current).getTime() - new Date(targetDate).getTime());
-      const closestDiff = Math.abs(new Date(closest).getTime() - new Date(targetDate).getTime());
-      return currentDiff < closestDiff ? current : closest;
-    });
-  }
+setOutOfScheduleDate(selectedSchedule: BorrowingBaseScheduleReportExpectedReport | null): void {
+  console.log('Selected Schedule:', selectedSchedule);
 }
