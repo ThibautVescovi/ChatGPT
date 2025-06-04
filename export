@@ -1,14 +1,24 @@
-<select class="form-select" [(ngModel)]="selectedSchedule" (ngModelChange)="setOutOfScheduleDate($event)">
-  <option *ngFor="let schedule of availableScheduleDate" [ngValue]="schedule">
-    <span [translate]="'bb-report.option.computed' | translate : {'computedDate': schedule.valueDate | date:'dd MMM yyyy'}"></span>
-  </option>
-  <option [ngValue]="null">
-    <span [translate]="'bb-report.option.none'"></span>
-  </option>
-</select>
-
-selectedSchedule: BorrowingBaseScheduleReportExpectedReport | null = null;
-
-setOutOfScheduleDate(selectedSchedule: BorrowingBaseScheduleReportExpectedReport | null): void {
-  console.log('Selected Schedule:', selectedSchedule);
+{
+  "records": [
+    {
+      "CdeMatPrem": "01",
+      "LibFrMatP": "ALUMINE",
+      "LibGbMatP": "ALUMINA",
+      "CdefDDeb": "2005-07-01",
+      "CdefDFin": "2100-12-31",
+      "CnomDDebValid": "2005-07-01",
+      "CnomDFinValid": "2100-12-31",
+      "IsActive": "Active"
+    },
+    {
+      "CdeMatPrem": "02",
+      "LibFrMatP": "ALUMINIUM",
+      "LibGbMatP": "ALUMINIUM",
+      "CdefDDeb": "2005-07-01",
+      "CdefDFin": "2100-12-31",
+      "CnomDDebValid": "2005-07-01",
+      "CnomDFinValid": "2100-12-31",
+      "IsActive": "Active"
+    }
+  ]
 }
