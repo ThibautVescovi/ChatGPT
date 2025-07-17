@@ -1,53 +1,42 @@
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { MyComponent } from './my.component';
-import { of } from 'rxjs';
-import { provideMockStore } from '@ngrx/store/testing';
-import { CorporateOutstandingStoreFacade } from '.../corporate-outstanding.store.facade';
-import { MockComponent, MockPipe, MockDirective } from 'ng-mocks';
+import { BorrowerOutstandingModule } from '...';
+import { StoreModule } from '@ngrx/store';
+import { EffectsModule } from '@ngrx/effects';
+import { CorporateOutstandingStoreFacade } from '...';
+import { MockProvider } from 'ng-mocks'; // très utile
+import { MockModule } from 'ng-mocks';
 
-// Mock du facade
 class MockCorporateOutstandingStoreFacade {
   readonly data$ = of([]);
   dispatch = jest.fn();
 }
 
-// Mock des sélecteurs NgRx
-const mockSelectors = [
-  {
-    selector: corporateOutstandingSelector.selectSomeValue,
-    value: [],
-  },
-];
-
 describe('MyComponent', () => {
   let spectator: Spectator<MyComponent>;
+
   const createComponent = createComponentFactory({
     component: MyComponent,
+    imports: [
+      BorrowerOutstandingModule, // 👈 Tu l'importes, mais on va override
+    ],
     providers: [
       { provide: CorporateOutstandingStoreFacade, useClass: MockCorporateOutstandingStoreFacade },
-      provideMockStore({ selectors: mockSelectors }),
     ],
-    declarations: [
-      // Composants utilisés dans le template de MyComponent
-      MockComponent(BorrowerOutstandingComponent),
-      MockComponent(BorrowerOutstandingListComponent),
-      MockComponent(BorrowerOutstandingDealListComponent),
-      MockComponent(ManageEditProductModalComponent),
-
-      // Pipes
-      MockPipe(CustomDatePipe),
-      MockPipe(TenorPipe),
-      MockPipe(AmountPipe),
-
-      // Directives
-      MockDirective(PermissionCheckDirective),
-      MockDirective(FeatureToggleCheckDirective),
-    ],
-    imports: [
-      // Ce que MyComponent a *vraiment* besoin
-      FormsModule,
-      TranslateModule.forRoot(), // ou MockModule(TranslateModule)
-      NgbModule, // ou MockModule(NgbModule) si utilisé dans le template
+    overrideModules: [
+      {
+        module: BorrowerOutstandingModule,
+        remove: {
+          imports: [
+            StoreModule.forFeature, // ⛔️ désactive les features NgRx
+            EffectsModule.forFeature,
+          ],
+          providers: [CorporateOutstandingStoreFacade], // si tu veux fournir le mock à la place
+        },
+        add: {
+          providers: [MockProvider(CorporateOutstandingStoreFacade)], // ou ta propre classe mockée
+        },
+      },
     ],
   });
 
@@ -55,7 +44,7 @@ describe('MyComponent', () => {
     spectator = createComponent();
   });
 
-  it('should work', () => {
+  it('should work with mocked BorrowerOutstandingModule', () => {
     expect(spectator.component).toBeDefined();
   });
 });
