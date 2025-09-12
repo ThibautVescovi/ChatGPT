@@ -1,50 +1,39 @@
-import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { MyComponent } from './my.component';
-import { BorrowerOutstandingModule } from '...';
-import { StoreModule } from '@ngrx/store';
-import { EffectsModule } from '@ngrx/effects';
-import { CorporateOutstandingStoreFacade } from '...';
-import { MockProvider } from 'ng-mocks'; // très utile
-import { MockModule } from 'ng-mocks';
+import { Component, effect, inject, signal, computed } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-class MockCorporateOutstandingStoreFacade {
-  readonly data$ = of([]);
-  dispatch = jest.fn();
+@Component({
+  selector: 'app-deal-portfolio',
+  templateUrl: './deal-portfolio.component.html',
+  styleUrls: ['./deal-portfolio.component.scss'],
+  standalone: true
+})
+export class DealPortfolioComponent {
+  private route = inject(ActivatedRoute);
+
+  // On transforme les params en signaux
+  id = signal<string | null>(null);
+  selectedTab = signal<string | null>(null);
+
+  constructor() {
+    // Abonnement aux changements de params (Angular → signals)
+    this.route.paramMap.subscribe(params => {
+      this.id.set(params.get('id'));
+      this.selectedTab.set(params.get('selectedTab'));
+    });
+
+    // effet déclenché quand id change OU quand selectedTab vaut 'overview'
+    effect(() => {
+      const currentId = this.id();
+      const tab = this.selectedTab();
+
+      if (currentId && tab === 'overview') {
+        this.loadLenderShare(currentId);
+      }
+    });
+  }
+
+  loadLenderShare(id: string) {
+    console.log('Loading lender share for deal id:', id);
+    // Ici ton vrai appel backend ou logique métier
+  }
 }
-
-describe('MyComponent', () => {
-  let spectator: Spectator<MyComponent>;
-
-  const createComponent = createComponentFactory({
-    component: MyComponent,
-    imports: [
-      BorrowerOutstandingModule, // 👈 Tu l'importes, mais on va override
-    ],
-    providers: [
-      { provide: CorporateOutstandingStoreFacade, useClass: MockCorporateOutstandingStoreFacade },
-    ],
-    overrideModules: [
-      {
-        module: BorrowerOutstandingModule,
-        remove: {
-          imports: [
-            StoreModule.forFeature, // ⛔️ désactive les features NgRx
-            EffectsModule.forFeature,
-          ],
-          providers: [CorporateOutstandingStoreFacade], // si tu veux fournir le mock à la place
-        },
-        add: {
-          providers: [MockProvider(CorporateOutstandingStoreFacade)], // ou ta propre classe mockée
-        },
-      },
-    ],
-  });
-
-  beforeEach(() => {
-    spectator = createComponent();
-  });
-
-  it('should work with mocked BorrowerOutstandingModule', () => {
-    expect(spectator.component).toBeDefined();
-  });
-});
