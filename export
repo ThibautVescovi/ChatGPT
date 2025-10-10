@@ -1,39 +1,61 @@
-import { Component, effect, inject, signal, computed } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+En agilité peut on faire une corrélation entre les story points et les jours hommes ?
 
-@Component({
-  selector: 'app-deal-portfolio',
-  templateUrl: './deal-portfolio.component.html',
-  styleUrls: ['./deal-portfolio.component.scss'],
-  standalone: true
-})
-export class DealPortfolioComponent {
-  private route = inject(ActivatedRoute);
 
-  // On transforme les params en signaux
-  id = signal<string | null>(null);
-  selectedTab = signal<string | null>(null);
 
-  constructor() {
-    // Abonnement aux changements de params (Angular → signals)
-    this.route.paramMap.subscribe(params => {
-      this.id.set(params.get('id'));
-      this.selectedTab.set(params.get('selectedTab'));
-    });
 
-    // effet déclenché quand id change OU quand selectedTab vaut 'overview'
-    effect(() => {
-      const currentId = this.id();
-      const tab = this.selectedTab();
+Excellente question — et c’est une confusion très fréquente, même chez des équipes expérimentées.
 
-      if (currentId && tab === 'overview') {
-        this.loadLenderShare(currentId);
-      }
-    });
-  }
+👉 En théorie agile (Scrum, XP, etc.) : non, on ne doit pas corréler directement les story points et les jours-hommes.
+Les story points ne sont pas une unité de temps, mais une unité d’effort relatif qui prend en compte :
 
-  loadLenderShare(id: string) {
-    console.log('Loading lender share for deal id:', id);
-    // Ici ton vrai appel backend ou logique métier
-  }
-}
+la complexité de la tâche,
+
+le volume de travail,
+
+et les incertitudes / risques.
+
+
+🧭 Pourquoi on ne fait pas de conversion directe
+
+Les story points servent à estimer la charge relative entre stories (ex. une story de 8 points est environ deux fois plus « grosse » qu’une story de 4 points).
+
+Les jours-hommes sont une mesure absolue de temps, dépendante des personnes, de leur expérience, de leur disponibilité, etc.
+
+Mélanger les deux détruit le sens des story points : cela transforme l’estimation relative en une promesse de temps, ce que l’agilité cherche justement à éviter.
+
+
+
+---
+
+🧮 En pratique (dans le suivi d’équipe)
+
+Certaines équipes établissent une corrélation empirique interne, a posteriori, pour planifier plus finement :
+
+Après plusieurs sprints, on observe que l’équipe livre en moyenne, disons, 30 points toutes les 2 semaines.
+
+Si l’équipe compte 5 personnes à plein temps, on pourrait en déduire ≈3 points par personne / semaine.
+Mais cette corrélation reste spécifique à l’équipe et n’a pas de valeur universelle.
+
+
+> ⚠️ On ne doit pas dire “1 point = 1 jour” ou “5 points = 3 jours” — ce serait une mauvaise pratique.
+
+
+
+
+---
+
+💡 Résumé
+
+Concept	Nature	Objectif
+
+Story Points	Effort relatif	Comparer les tâches entre elles
+Jours-hommes	Temps absolu	Planifier la capacité ou la charge
+Corrélation directe	❌ Non recommandée	Brise la logique agile
+Corrélation empirique interne	✅ Possible (à posteriori)	Pour estimer la vélocité et planifier
+
+
+
+---
+
+Souhaites-tu que je te montre un exemple concret de comment une équipe peut estimer avec des story points et ensuite en déduire sa vélocité moyenne (sans convertir en jours) ?
+
